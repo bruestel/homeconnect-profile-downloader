@@ -83,6 +83,7 @@ const createWindow = () => {
 
     } catch (error) {
       console.error('Could not read zip files:', error.message);
+      mainWindow.webContents.send('app-log', `Could not read zip files ${error.message}`);
       return [];
     }
   });
@@ -93,6 +94,7 @@ const createWindow = () => {
 
   ipcMain.on('form-submitted', (event, data) => {
     console.log('Fetch profiles.', data);
+    mainWindow.webContents.send('app-log', `Fetch profiles: ${JSON.stringify(data)}`);
 
     let apiBaseUrl;
     let assetBaseUrl;
@@ -141,7 +143,6 @@ const createWindow = () => {
       url.searchParams.append(key, queryParams[key]);
     });
 
-    //mainWindow.webContents.openDevTools();
     mainWindow.loadURL(url.toString());
   });
 
@@ -157,7 +158,6 @@ const createWindow = () => {
     });
 
     mainWindow.loadFile('loading.html');
-
 
     // get access token and fetch device information
     const targetDirectory = "profiles-" + target;
@@ -200,46 +200,53 @@ function generateCodeChallenge(codeVerifier) {
 }
 
 async function getDeviceInformation(tokenUrl, code, codeVerifier, accountDetailsUrl, deviceInfoUrl, targetDirectory) {
-  const accessToken = await getOAuthToken(tokenUrl, code, codeVerifier);
+  try {
+    const accessToken = await getOAuthToken(tokenUrl, code, codeVerifier);
 
-  // profiles
-  const response = await getApplianceInformation(accountDetailsUrl, accessToken);
-  const homeAppliances = response.data.homeAppliances;
-  const profiles = [];
-  for (const appliance of homeAppliances) {
-    console.log(`haId: ${appliance.identifier}, type: ${appliance.type}, serialNumber: ${appliance.serialnumber}`);
-    console.log(`appliance: ${JSON.stringify(appliance, null, 2)}`);
+    // profiles
+    const response = await getApplianceInformation(accountDetailsUrl, accessToken);
+    const homeAppliances = response.data.homeAppliances;
+    const profiles = [];
+    for (const appliance of homeAppliances) {
+      console.log(`haId: ${appliance.identifier}, type: ${appliance.type}, serialNumber: ${appliance.serialnumber}`);
+      console.log(`appliance: ${JSON.stringify(appliance, null, 2)}`);
 
-    const profile = {
-      haId: appliance.identifier,
-      type: appliance.type,
-      serialNumber: appliance.serialnumber,
-      brand: appliance.brand,
-      vib: appliance.vib,
-      mac: appliance.mac,
-      featureMappingFileName: appliance.identifier + "_FeatureMapping.xml",
-      deviceDescriptionFileName: appliance.identifier + "_DeviceDescription.xml",
-      created: generateTimestamp()
+      const profile = {
+        haId: appliance.identifier,
+        type: appliance.type,
+        serialNumber: appliance.serialnumber,
+        brand: appliance.brand,
+        vib: appliance.vib,
+        mac: appliance.mac,
+        featureMappingFileName: appliance.identifier + "_FeatureMapping.xml",
+        deviceDescriptionFileName: appliance.identifier + "_DeviceDescription.xml",
+        created: generateTimestamp()
+      }
+
+      if (appliance.hasOwnProperty("tls") && appliance.tls !== undefined && appliance.tls.key !== undefined) {
+        console.log(`TLS key: ${appliance.tls.key}`);
+        profile["connectionType"] = "TLS";
+        profile["key"] = appliance.tls.key;
+      } else {
+        console.log(`AES key: ${appliance.aes.key}, iv: ${appliance.aes.iv}`);
+        profile["connectionType"] = "AES";
+        profile["key"] = appliance.aes.key;
+        profile["iv"] = appliance.aes.iv;
+      }
+
+      profiles.push(profile);
+
+      // get device xmls
+      await loadZip(deviceInfoUrl, accessToken, targetDirectory, profile);
     }
+    mainWindow.loadFile('download.html');
+  } catch (error) {
+    mainWindow.loadFile('error.html');
 
-    if (appliance.hasOwnProperty("tls") && appliance.tls !== undefined && appliance.tls.key !== undefined) {
-      console.log(`TLS key: ${appliance.tls.key}`);
-      profile["connectionType"] = "TLS";
-      profile["key"] = appliance.tls.key;
-    } else {
-      console.log(`AES key: ${appliance.aes.key}, iv: ${appliance.aes.iv}`);
-      profile["connectionType"] = "AES";
-      profile["key"] = appliance.aes.key;
-      profile["iv"] = appliance.aes.iv;
-    }
-
-    profiles.push(profile);
-
-    // get device xmls
-    await loadZip(deviceInfoUrl, accessToken, targetDirectory, profile);
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send('error-details', error.message);
+    });
   }
-
-  mainWindow.loadFile('download.html');
 }
 
 async function getOAuthToken(url, code, codeVerifier) {
@@ -261,7 +268,7 @@ async function getOAuthToken(url, code, codeVerifier) {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP-Error: ${response.status}`);
+      throw new Error(`Invalid HTTP response received: ${response.status}`);
     }
 
     const data = await response.json();
@@ -269,6 +276,8 @@ async function getOAuthToken(url, code, codeVerifier) {
     return data.access_token;
   } catch (error) {
     console.error('Could not fetch token:', error);
+    mainWindow.webContents.send('app-log', `Could not fetch token: ${error}`);
+    throw error;
   }
 }
 
@@ -282,8 +291,10 @@ async function getApplianceInformation(url, accessToken) {
       }
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP-Error: ${response.status}`);
+    if (response.status == 401) {
+      throw new URIError("Wrong region used! Try a different region.");
+    } else if (!response.ok) {
+      throw new Error(`Invalid server response code! Received: ${response.status}`);
     }
 
     const data = await response.json();
@@ -291,6 +302,8 @@ async function getApplianceInformation(url, accessToken) {
     return data;
   } catch (error) {
     console.error('Could not fetch appliance information:', error);
+    mainWindow.webContents.send('app-log', `Could not fetch appliance information: ${error}`);
+    throw error;
   }
 }
 
@@ -334,6 +347,8 @@ async function loadZip(urlPrefix, accessToken, targetDirectory, profile) {
     return zipFilePath;
   } catch (error) {
     console.error('Could not load or write profile zip:', error.message);
+    mainWindow.webContents.send('app-log', `Could not load or write profile zip: ${error.message}`);
+    throw error;
   }
 }
 
