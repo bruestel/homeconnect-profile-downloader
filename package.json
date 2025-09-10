@@ -21,7 +21,7 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.6.0",
     "@electron-forge/plugin-fuses": "^7.6.0",
     "@electron/fuses": "^1.8.0",
-    "@reforged/maker-appimage": "^4.0.4",
+    "@reforged/maker-appimage": "^4.1.1",
     "electron": "^38.0.0"
   },
   "dependencies": {
