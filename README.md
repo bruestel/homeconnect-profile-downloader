@@ -75,10 +75,10 @@ Unfortunately, there are no pre-built macOS binaries available due to restrictio
 
 1. Install Node.js and npm  
    - Ensure you have Homebrew installed on your system. If not, install it by following the instructions at [brew.sh](https://brew.sh).
-   - Use Homebrew to install Node.js (version 18) and npm:
+   - Use Homebrew to install Node.js (version 22) and npm:
 
      ```bash
-     brew install node@18
+     brew install node@22
      ```
 
    - Follow the brew after installation instructions and open a new terminal window afterwards.
@@ -122,7 +122,7 @@ Unfortunately, there are no pre-built macOS binaries available due to restrictio
 
 ### Prerequisites
 
-Ensure that you have [Node.js](https://nodejs.org/) 18+ installed on your system. You can verify this by running the following commands in your terminal:
+Ensure that you have [Node.js](https://nodejs.org/) 22+ installed on your system. You can verify this by running the following commands in your terminal:
 
 ```bash
 node -v
