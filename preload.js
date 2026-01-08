@@ -4,7 +4,7 @@ contextBridge.exposeInMainWorld('api', {
   sendFormData: (data) => {
     ipcRenderer.send('form-submitted', data);
   },
-  getZipFiles: () => ipcRenderer.invoke('get-zip-files'),
+  getFiles: () => ipcRenderer.invoke('get-files'),
   getProfilePath: () => ipcRenderer.invoke('get-profile-path'),
 });
 

@@ -12,9 +12,9 @@
 <body>
   <main>
     <h1>Home Connect Profile Downloader</h1>
-    <h2>Profiles</h2>
+    <h2>Profiles etc.</h2>
     <p id="profile-path"></p>
-    <ul id="zip-list">
+    <ul id="list">
 
     </ul>
 
@@ -24,18 +24,19 @@
   </main>
 
   <script>
-    async function loadZipFiles() {
-      const zipFiles = await window.api.getZipFiles();
+    async function loadFiles() {
+      const files = await window.api.getFiles();
       const profilePath = await window.api.getProfilePath();
-      const zipList = document.getElementById('zip-list');
+      const fileList = document.getElementById('list');
 
-      zipFiles.forEach(file => {
+      files.forEach(file => {
         const listItem = document.createElement('li');
         const link = document.createElement('a');
         link.textContent = file;
         link.href = `${profilePath}/${file}`;
+        link.download = file;
         listItem.appendChild(link);
-        zipList.appendChild(listItem);
+        fileList.appendChild(listItem);
       });
     }
 
@@ -45,7 +46,7 @@
     }
 
     displayProfilePath();
-    loadZipFiles();
+    loadFiles();
   </script>
 
 </body>
