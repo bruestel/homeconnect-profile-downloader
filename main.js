@@ -79,7 +79,7 @@ const createWindow = () => {
   Menu.setApplicationMenu(menu);
 
   ipcMain.handle('get-zip-files', async () => {
-    const downloadsFolder = path.join(app.getPath('temp'), "profiles-homeconnectdirect");
+    const downloadsFolder = getDownloadDirectory();
     try {
       const files = fs.readdirSync(downloadsFolder);
       const zipFiles = files
@@ -101,7 +101,7 @@ const createWindow = () => {
   });
 
   ipcMain.handle('get-profile-path', async () => {
-    return path.join(app.getPath('temp'), "profiles-homeconnectdirect");
+    return getDownloadDirectory();
   });
 
   ipcMain.on('form-submitted', (event, data) => {
@@ -172,8 +172,7 @@ const createWindow = () => {
     mainWindow.loadFile('loading.html');
 
     // get access token and fetch device information
-    const targetDirectory = "profiles-" + target;
-    getDeviceInformation(tokenUrl, code, codeVerifier, accountDetailsUrl, deviceInfoUrl, targetDirectory);
+    getDeviceInformation(tokenUrl, code, codeVerifier, accountDetailsUrl, deviceInfoUrl, target);
   });
 }
 
@@ -211,7 +210,7 @@ function generateCodeChallenge(codeVerifier) {
   return hash;
 }
 
-async function getDeviceInformation(tokenUrl, code, codeVerifier, accountDetailsUrl, deviceInfoUrl, targetDirectory) {
+async function getDeviceInformation(tokenUrl, code, codeVerifier, accountDetailsUrl, deviceInfoUrl, target) {
   try {
     const accessToken = await getOAuthToken(tokenUrl, code, codeVerifier);
 
@@ -249,7 +248,7 @@ async function getDeviceInformation(tokenUrl, code, codeVerifier, accountDetails
       profiles.push(profile);
 
       // get device xmls
-      await loadZip(deviceInfoUrl, accessToken, targetDirectory, profile);
+      await loadZip(deviceInfoUrl, accessToken, profile, target);
     }
 
     if (profiles.length === 0) {
@@ -324,9 +323,9 @@ async function getApplianceInformation(url, accessToken) {
   }
 }
 
-async function loadZip(urlPrefix, accessToken, targetDirectory, profile) {
+async function loadZip(urlPrefix, accessToken, profile, target) {
   try {
-    const folderPath = path.join(app.getPath('temp'), targetDirectory);
+    const folderPath = getDownloadDirectory();
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath, { recursive: true });
       console.log(`Created target directory: ${folderPath}`);
@@ -340,9 +339,10 @@ async function loadZip(urlPrefix, accessToken, targetDirectory, profile) {
     const brand = profile.brand.toLowerCase();
     const vib = profile.vib.toLowerCase();
     const mac = profile.mac.replace(/-/g, '').toLowerCase();
+    const filePrefix = target === 'homeconnectdirect' ? 'homeconnectdirect' : 'homeconnect-local-hass'
 
     const zipFilePath = path.join(folderPath,
-      `homeconnectdirect-${type}-${brand}-${vib}-${mac}_${formattedDate}.zip`);
+      `${filePrefix}-${type}-${brand}-${vib}-${mac}_${formattedDate}.zip`);
     const headers = {
       'Authorization': 'Bearer ' + accessToken
     };
@@ -367,6 +367,10 @@ async function loadZip(urlPrefix, accessToken, targetDirectory, profile) {
     mainWindow.webContents.send('app-log', `Could not load or write profile zip: ${error.message}`);
     throw error;
   }
+}
+
+function getDownloadDirectory() {
+  return path.join(app.getPath('temp'), "home-connect-profiles");
 }
 
 function generateTimestamp() {
