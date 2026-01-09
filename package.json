@@ -1,6 +1,6 @@
 {
   "name": "homeconnect-profile-downloader",
-  "version": "1.0.0",
+  "version": "1.0.1-SNAPSHOT",
   "description": "This tool fetches profile information for all Home Connect devices linked to your account, enabling direct communication with your appliances over the local network.",
   "main": "main.js",
   "scripts": {
