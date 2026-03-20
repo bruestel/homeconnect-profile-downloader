@@ -71,52 +71,54 @@ To install and run the application on Windows, follow these steps:
 
 ### On Mac OS
 
-Unfortunately, there are no pre-built macOS binaries available due to restrictions on running unsigned applications. However, you can build and run the application locally by following these steps:
+#### Running the Pre-built Application
 
-1. Install Node.js and npm  
-   - Ensure you have Homebrew installed on your system. If not, install it by following the instructions at [brew.sh](https://brew.sh).
-   - Use Homebrew to install Node.js (version 22) and npm:
+When you download a pre-built application from the releases, macOS may prevent it from running because it is not from a registered developer. If you see an error message, you can resolve this by removing the "quarantine" attribute that macOS adds to downloaded files.
 
-     ```bash
-     brew install node@22
-     ```
+1.  After downloading and unzipping the application, if you see an error message when trying to open it, click **Cancel**.
+2.  Open the **Terminal** app (you can find it using Spotlight with `Cmd + Space`).
+3.  Type the command `xattr -cr ` (note the space at the end) but do not press Enter yet.
+4.  Drag the application file (e.g., `homeconnect-profile-downloader.app`) from your Finder window into the Terminal window. The path to the app will be automatically appended to your command.
+5.  The full command will look something like this: `xattr -cr /Users/YourName/Downloads/homeconnect-profile-downloader.app`
+6.  Press **Enter** to run the command.
+7.  You should now be able to open the application by double-clicking it.
 
-   - Follow the brew after installation instructions and open a new terminal window afterwards.
+#### Building and Running from Source (Alternative Method)
 
-   - After installation, verify the Node.js and npm versions:
+If you prefer, you can build and run the application locally from the source code.
 
-     ```bash
-     node -v
-     npm -v
-     ```
+1.  **Install Node.js and npm**
+    *   Ensure you have Homebrew installed. If not, follow the instructions at [brew.sh](https://brew.sh).
+    *   Install Node.js (version 22) and npm:
+        ```bash
+        brew install node@22
+        ```
+    *   Follow any post-installation instructions from Homebrew and then open a new terminal window.
+    *   Verify the installation:
+        ```bash
+        node -v
+        npm -v
+        ```
 
-2. Clone the repository  
-   - Open a terminal and clone the repository:
+2.  **Clone the Repository**
+    ```bash
+    git clone https://github.com/bruestel/homeconnect-profile-downloader.git
+    ```
 
-     ```bash
-     git clone https://github.com/bruestel/homeconnect-profile-downloader.git
-     ```
+3.  **Navigate to the Project Directory**
+    ```bash
+    cd homeconnect-profile-downloader
+    ```
 
-3. Navigate to the project directory  
-   - Change to the cloned repository's directory:
+4.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
 
-     ```bash
-     cd homeconnect-profile-downloader
-     ```
-
-4. Install dependencies  
-   - Install the required dependencies using npm:
-
-     ```bash
-     npm install
-     ```
-
-5. Run the application  
-   - Start the application with npm:
-
-     ```bash
-     npm start
-     ```
+5.  **Run the Application**
+    ```bash
+    npm start
+    ```
 
 ## Build and Run
 
