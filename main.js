@@ -119,10 +119,7 @@ const createWindow = () => {
       assetBaseUrl = 'https://na.services.home-connect.com';
     } else if (data.region === 'CN') {
       apiBaseUrl = "https://api.home-connect.cn";
-      assetBaseUrl = 'https://prod.rgc.rest.homeconnectegw.cn';
-    } else if (data.region === 'RU') {
-      apiBaseUrl = "https://api-rus.home-connect.com";
-      assetBaseUrl = 'https://prod.rus.rest.homeconnectegw.com';
+      assetBaseUrl = 'https://cn.services.home-connect.cn';
     } else {
       throw new Error(`Invalid region! ${data.region}`);
     }
