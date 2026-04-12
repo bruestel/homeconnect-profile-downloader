@@ -20,10 +20,10 @@ const filter = {
 };
 
 let tokenUrl;
-let accountDetailsUrl;
 let deviceInfoUrl;
 let codeVerifier;
 let target;
+let assetBaseUrlGlobal;
 
 
 const createWindow = () => {
@@ -113,10 +113,10 @@ const createWindow = () => {
     let assetBaseUrl;
     if (data.region === 'EU') {
       apiBaseUrl = "https://api.home-connect.com";
-      assetBaseUrl = 'https://prod.reu.rest.homeconnectegw.com';
+      assetBaseUrl = 'https://eu.services.home-connect.com';
     } else if (data.region === 'NA') {
       apiBaseUrl = "https://api-rna.home-connect.com";
-      assetBaseUrl = 'https://prod.rna.rest.homeconnectegw.com';
+      assetBaseUrl = 'https://na.services.home-connect.com';
     } else if (data.region === 'CN') {
       apiBaseUrl = "https://api.home-connect.cn";
       assetBaseUrl = 'https://prod.rgc.rest.homeconnectegw.cn';
@@ -128,10 +128,10 @@ const createWindow = () => {
     }
 
     target = data.target;
+    assetBaseUrlGlobal = assetBaseUrl;
 
     const authorizeUrl = apiBaseUrl + '/security/oauth/authorize';
     tokenUrl = apiBaseUrl + '/security/oauth/token';
-    accountDetailsUrl = assetBaseUrl + '/account/details';
     deviceInfoUrl = assetBaseUrl + '/api/iddf/v1/iddf/';
 
     const nonce = generateNonce(16);
@@ -173,7 +173,7 @@ const createWindow = () => {
     mainWindow.loadFile('loading.html');
 
     // get access token and fetch device information
-    fetchDeviceData(tokenUrl, code, codeVerifier, accountDetailsUrl, deviceInfoUrl, target);
+    fetchDeviceData(tokenUrl, code, codeVerifier, deviceInfoUrl, target);
   });
 }
 
@@ -211,13 +211,44 @@ function generateCodeChallenge(codeVerifier) {
   return hash;
 }
 
-async function fetchDeviceData(tokenUrl, code, codeVerifier, accountDetailsUrl, deviceInfoUrl, target) {
+async function fetchDeviceData(tokenUrl, code, codeVerifier, deviceInfoUrl, target) {
   try {
     const accessToken = await getOAuthToken(tokenUrl, code, codeVerifier);
 
-    // profiles
-    const response = await getApplianceInformation(accountDetailsUrl, accessToken);
-    const homeAppliances = response.data.homeAppliances;
+    // Extract hcId from JWT token's 'sub' claim
+    const tokenPayload = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString());
+    const hcId = tokenPayload.sub;
+    console.log(`Account hcId: ${hcId}`);
+    mainWindow.webContents.send('app-log', `Account hcId: ${hcId}`);
+
+    // Step 2: Get paired appliances list
+    const pairedAppliancesUrl = assetBaseUrlGlobal + '/api/account/v2/accounts/' + hcId + '/paired-appliances';
+    const appliancesData = await getPairedAppliances(pairedAppliancesUrl, accessToken);
+    const appliances = appliancesData.appliances;
+
+    if (!appliances || appliances.length === 0) {
+      throw new Error("No appliances found for this account!");
+    }
+
+    // Step 3: Get encryption data for each appliance
+    for (const appliance of appliances) {
+      const encryptionUrl = assetBaseUrlGlobal + '/api/appliance/v2/appliances/' + appliance.haId + '/encryption-information';
+      const encryptionData = await getApplianceEncryptionData(encryptionUrl, accessToken);
+      appliance.tls = encryptionData.tls || undefined;
+      appliance.aes = encryptionData.aes || undefined;
+    }
+
+    // Map new field names to old format expected by downstream code
+    const homeAppliances = appliances.map(a => ({
+      identifier: a.haId,
+      type: a.haType,
+      serialnumber: a.serialNumber,
+      brand: a.brand,
+      vib: a.vib,
+      mac: a.mac,
+      tls: a.tls,
+      aes: a.aes
+    }));
 
     if ((target === 'hcpy')) {
       const devices = [];
@@ -325,13 +356,14 @@ async function getOAuthToken(url, code, codeVerifier) {
   }
 }
 
-async function getApplianceInformation(url, accessToken) {
-  console.log('Get appliance information. ', accessToken, url);
+async function getPairedAppliances(url, accessToken) {
+  console.log('Get paired appliances.', url);
   try {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer ' + accessToken,
+        'Accept': 'application/json',
       }
     });
 
@@ -342,11 +374,36 @@ async function getApplianceInformation(url, accessToken) {
     }
 
     const data = await response.json();
-    console.log('appliance information response:', data);
+    console.log('paired appliances response:', data);
     return data;
   } catch (error) {
-    console.error('Could not fetch appliance information:', error);
-    mainWindow.webContents.send('app-log', `Could not fetch appliance information: ${error}`);
+    console.error('Could not fetch paired appliances:', error);
+    mainWindow.webContents.send('app-log', `Could not fetch paired appliances: ${error}`);
+    throw error;
+  }
+}
+
+async function getApplianceEncryptionData(url, accessToken) {
+  console.log('Get appliance encryption data.', url);
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Accept': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Invalid server response code! Received: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('encryption data response:', data);
+    return data;
+  } catch (error) {
+    console.error('Could not fetch appliance encryption data:', error);
+    mainWindow.webContents.send('app-log', `Could not fetch appliance encryption data: ${error}`);
     throw error;
   }
 }
