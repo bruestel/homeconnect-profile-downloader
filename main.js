@@ -283,7 +283,7 @@ async function fetchDeviceData(tokenUrl, code, codeVerifier, deviceInfoUrl, targ
           haId: appliance.identifier,
           type: appliance.type,
           serialNumber: appliance.serialnumber,
-          brand: appliance.brand,
+          brand: appliance.brand ? appliance.brand.toUpperCase() : appliance.brand,
           vib: appliance.vib,
           mac: appliance.mac,
           featureMappingFileName: appliance.identifier + "_FeatureMapping.xml",
