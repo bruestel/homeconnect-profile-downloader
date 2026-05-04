@@ -221,18 +221,33 @@ async function fetchDeviceData(tokenUrl, code, codeVerifier, deviceInfoUrl, targ
     // Step 2: Get paired appliances list
     const pairedAppliancesUrl = assetBaseUrlGlobal + '/api/account/v2/accounts/' + hcId + '/paired-appliances';
     const appliancesData = await getPairedAppliances(pairedAppliancesUrl, accessToken);
-    const appliances = appliancesData.appliances;
+    const allAppliances = appliancesData.appliances;
 
-    if (!appliances || appliances.length === 0) {
+    if (!allAppliances || allAppliances.length === 0) {
       throw new Error("No appliances found for this account!");
+    }
+
+    // Filter out demo appliances as they don't support encryption or local communication
+    const appliances = allAppliances.filter(a => !a.isDemo);
+    if (appliances.length === 0) {
+      throw new Error("No real appliances found for this account (only demo appliances)!");
+    }
+    if (appliances.length < allAppliances.length) {
+      console.log(`Filtered out ${allAppliances.length - appliances.length} demo appliance(s).`);
+      mainWindow.webContents.send('app-log', `Filtered out ${allAppliances.length - appliances.length} demo appliance(s).`);
     }
 
     // Step 3: Get encryption data for each appliance
     for (const appliance of appliances) {
       const encryptionUrl = assetBaseUrlGlobal + '/api/appliance/v2/appliances/' + appliance.haId + '/encryption-information';
-      const encryptionData = await getApplianceEncryptionData(encryptionUrl, accessToken);
-      appliance.tls = encryptionData.tls || undefined;
-      appliance.aes = encryptionData.aes || undefined;
+      try {
+        const encryptionData = await getApplianceEncryptionData(encryptionUrl, accessToken);
+        appliance.tls = encryptionData.tls || undefined;
+        appliance.aes = encryptionData.aes || undefined;
+      } catch (e) {
+        console.warn(`Skipping encryption data for ${appliance.haId}: ${e.message}`);
+        mainWindow.webContents.send('app-log', `Warning: Could not fetch encryption data for ${appliance.haId}, skipping.`);
+      }
     }
 
     // Map new field names to old format expected by downstream code
@@ -252,6 +267,12 @@ async function fetchDeviceData(tokenUrl, code, codeVerifier, deviceInfoUrl, targ
       for (const appliance of homeAppliances) {
         console.log(`haId: ${appliance.identifier}, type: ${appliance.type}, serialNumber: ${appliance.serialnumber}`);
         console.log(`appliance: ${JSON.stringify(appliance, null, 2)}`);
+
+        if (appliance.tls === undefined && appliance.aes === undefined) {
+          console.warn(`Skipping appliance ${appliance.identifier}: no encryption data available.`);
+          mainWindow.webContents.send('app-log', `Warning: Skipping appliance ${appliance.identifier} (no encryption data available).`);
+          continue;
+        }
 
         const config = new Map();
         config.set('name', appliance.type.toLowerCase());
@@ -295,11 +316,15 @@ async function fetchDeviceData(tokenUrl, code, codeVerifier, deviceInfoUrl, targ
           console.log(`TLS key: ${appliance.tls.key}`);
           profile["connectionType"] = "TLS";
           profile["key"] = appliance.tls.key;
-        } else {
+        } else if (appliance.aes !== undefined && appliance.aes.key !== undefined) {
           console.log(`AES key: ${appliance.aes.key}, iv: ${appliance.aes.iv}`);
           profile["connectionType"] = "AES";
           profile["key"] = appliance.aes.key;
           profile["iv"] = appliance.aes.iv;
+        } else {
+          console.warn(`Skipping appliance ${appliance.identifier}: no encryption data available.`);
+          mainWindow.webContents.send('app-log', `Warning: Skipping appliance ${appliance.identifier} (no encryption data available).`);
+          continue;
         }
 
         profiles.push(profile);
