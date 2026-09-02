@@ -1,0 +1,6 @@
+# One line per statement wherever it fits in the width, rather than a call
+# broken across five lines because it passed sixty columns. The default splits
+# arguments long before the line is full, which turns readable calls into
+# vertical lists and pushes the code down the page.
+max_width = 100
+use_small_heuristics = "Max"

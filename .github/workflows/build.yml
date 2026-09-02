@@ -1,0 +1,103 @@
+# Builds and checks the Rust port on the three systems it ships to.
+#
+# The split into two jobs is deliberate. `check` is one machine and runs the
+# things that fail for reasons that have nothing to do with a platform, so a
+# missing format or a clippy warning is reported in a minute rather than after
+# three builds. `build` then runs everywhere, because the failures worth having
+# a matrix for are the ones that only happen on one system.
+name: Build
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Format, lints and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libsoup-3.0-dev \
+            libxkbcommon-dev libwayland-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo fmt --all --check
+
+      # Denied rather than reported. The failure this catches is dead code
+      # behind a cfg, which compiles on the machine that wrote it and not on
+      # the one it was written for.
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - run: cargo test --workspace
+
+  build:
+    name: ${{ matrix.name }}
+    needs: check
+    strategy:
+      # One system failing should not hide what the other two would have said.
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            # One path per line. `upload-artifact` splits its `path` on
+            # newlines, not on spaces, so two names on one line are read as a
+            # single path that matches nothing.
+            binaries: |
+              target/release/hcpd
+              target/release/hcpd-login
+          - name: macOS
+            os: macos-latest
+            binaries: |
+              target/release/hcpd
+              target/release/hcpd-login
+          - name: Windows
+            os: windows-latest
+            binaries: |
+              target/release/hcpd.exe
+              target/release/hcpd-login.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: System libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libsoup-3.0-dev \
+            libxkbcommon-dev libwayland-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}
+
+      # Run again per platform, and not only on the checking machine. The tests
+      # that matter here are the ones about paths and conventions, which differ
+      # per system and are pinned by assertions that only fire where they apply.
+      - run: cargo test --workspace
+
+      - run: cargo build --release --workspace
+
+      # Both binaries, in one artifact. The application looks for the login
+      # helper beside itself, so they are never useful apart.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hcpd-${{ matrix.name }}
+          path: ${{ matrix.binaries }}
+          if-no-files-found: error

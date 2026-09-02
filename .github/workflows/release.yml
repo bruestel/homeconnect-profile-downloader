@@ -1,0 +1,263 @@
+# Builds every package on every architecture and hangs them on a release.
+#
+# Runs on a tag, and only on a tag. A release is a deliberate act, and the
+# ordinary Build workflow already says on every push whether the code is sound.
+name: Release
+
+on:
+  push:
+    # Both spellings. Every release so far is tagged without a prefix (1.0.2,
+    # 0.9.2), and a workflow that only listened for `v*` would have let the
+    # first one pass in silence.
+    tags: ['[0-9]*', 'v[0-9]*']
+    # TEMPORARY, and to be removed before this branch becomes main.
+    #
+    # A `workflow_dispatch` can only be started for a workflow that exists on
+    # the default branch, and this one deliberately does not yet. Listening for
+    # pushes to the branch itself is the way to exercise all eight packages
+    # without touching main. The publish job stays behind its tag check, so
+    # nothing is released either way.
+    #
+    # It has to live in this one `push:` block: a second `push:` key beside it
+    # is a duplicate mapping key, and the later one silently wins, which would
+    # have left the tags above listening to nobody.
+    branches: ['2.x']
+  # For trying the packaging without cutting a release. Nothing is published.
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: Linux ${{ matrix.arch }}
+    # Native runners per architecture rather than cross-compilation. The build
+    # needs webkit2gtk's headers and libraries, and getting those into a cross
+    # sysroot is a project of its own; a runner has them from apt.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Not the newest Ubuntu, deliberately. A binary is bound to the glibc
+          # it was built against, so building on the newest would produce
+          # packages that refuse to start on the release before it.
+          - { os: ubuntu-22.04, arch: x86_64 }
+          - { os: ubuntu-22.04-arm, arch: aarch64 }
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libsoup-3.0-dev \
+            libxkbcommon-dev libwayland-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}
+
+      # A tag names the version. A push to the branch is a packaging
+      # rehearsal, and taking the name from the ref would put `rust-iced` into
+      # a file name, an installer's DisplayVersion and
+      # `CFBundleShortVersionString`, where only digits and dots belong.
+      - name: Version
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - run: cargo build --release --workspace
+
+      - name: deb and rpm
+        run: |
+          cargo install cargo-deb cargo-generate-rpm --locked
+          mkdir -p dist
+          cargo deb -p hcpd --no-build -o dist/
+          # The rpm needs the version handed to it, and in another spelling.
+          # Neither format takes semver's hyphen: cargo-deb turns it into a
+          # tilde by itself, cargo-generate-rpm refuses the whole build with
+          # "invalid version ... contains invalid character". A tilde is the
+          # right answer in both, because both sort it before everything else,
+          # which is what a pre-release has to do.
+          # The tilde is escaped. Unescaped, bash expands it in the
+          # replacement half of a substitution, and the version came out as
+          # "2.0.0/home/bruestelbeta.1". Measured, and it would have shipped.
+          rpm_version=${VERSION//-/\~}
+          cargo generate-rpm -p app -o dist/ -s "version = \"$rpm_version\""
+
+      - name: AppImage
+        run: packaging/linux/make-appimage.sh "$VERSION"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  windows:
+    name: Windows ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, arch: x86_64 }
+          - { os: windows-11-arm, arch: aarch64 }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}
+
+      # A tag names the version. A push to the branch is a packaging
+      # rehearsal, and taking the name from the ref would put `rust-iced` into
+      # a file name, an installer's DisplayVersion and
+      # `CFBundleShortVersionString`, where only digits and dots belong.
+      - name: Version
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - run: cargo build --release --workspace
+
+      # NSIS takes its files from one directory, so both binaries are put there
+      # first. The script would otherwise reach into target/release, and a stale
+      # binary from an earlier build would go unnoticed.
+      - name: Stage the binaries
+        shell: bash
+        run: |
+          mkdir -p dist/stage
+          cp target/release/hcpd.exe target/release/hcpd-login.exe dist/stage/
+
+      # Looked for, then installed if missing, rather than assumed. The two
+      # runner images disagree: the ARM one ships NSIS under `Program Files
+      # (x86)`, and the x86_64 one does not ship it at all any more. Neither a
+      # hardcoded path nor an unconditional install is right for both.
+      - name: NSIS
+        shell: bash
+        run: |
+          find_makensis() {
+            command -v makensis && return 0
+            for candidate in \
+              "/c/Program Files (x86)/NSIS/makensis.exe" \
+              "/c/Program Files/NSIS/makensis.exe"
+            do
+              if [ -x "$candidate" ]; then
+                printf '%s\n' "$candidate"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          if ! makensis=$(find_makensis); then
+            echo "NSIS is not on this image, installing it"
+            choco install nsis --no-progress --yes
+            if ! makensis=$(find_makensis); then
+              echo "makensis is still not there after installing NSIS" >&2
+              exit 1
+            fi
+          fi
+          echo "Using $makensis"
+          echo "MAKENSIS=$makensis" >> "$GITHUB_ENV"
+
+      - name: Installer
+        shell: bash
+        run: |
+          "$MAKENSIS" -DVERSION="$VERSION" -DARCH="${{ matrix.arch }}" \
+            packaging/windows/hcpd.nsi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-${{ matrix.arch }}
+          path: dist/*.exe
+          if-no-files-found: error
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          # Both from the one runner. Unlike Linux, cross-compiling here needs
+          # nothing but the target: the SDK carries both architectures and the
+          # only library involved is the system's own WebKit.
+          targets: x86_64-apple-darwin, aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+
+      # A tag names the version. A push to the branch is a packaging
+      # rehearsal, and taking the name from the ref would put `rust-iced` into
+      # a file name, an installer's DisplayVersion and
+      # `CFBundleShortVersionString`, where only digits and dots belong.
+      - name: Version
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Build for both architectures
+        run: |
+          cargo build --release --workspace --target x86_64-apple-darwin
+          cargo build --release --workspace --target aarch64-apple-darwin
+
+      # Two images rather than one universal one: five megabytes each, against
+      # ten of which half is dead weight on any given machine. The names say
+      # Intel and Apple silicon, because that is what a person knows about their
+      # own Mac.
+      - name: Disk images
+        run: |
+          packaging/macos/make-dmg.sh "$VERSION" \
+            target/x86_64-apple-darwin/release intel
+          packaging/macos/make-dmg.sh "$VERSION" \
+            target/aarch64-apple-darwin/release apple-silicon
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos
+          path: dist/*.dmg
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    needs: [linux, windows, macos]
+    # Only a tag becomes a release. A manual run builds the packages and stops,
+    # which is what makes it safe to use for trying the packaging out.
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: artifacts/*/*
+          draft: true
+          generate_release_notes: true
+          # A tag with a hyphen in it is a pre-release by semver's own rule, so
+          # 2.0.0-beta.1 is marked as one and 2.0.0 is not. Without this GitHub
+          # would offer a beta as the latest release to everyone still on 1.x.
+          prerelease: ${{ contains(github.ref_name, '-') }}

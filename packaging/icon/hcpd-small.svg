@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+  The same mark as hcpd.svg, with everything removed that turns to mud when the
+  whole icon is sixteen pixels across.
+
+  Three shapes are left: the body, the door, and the arrow going into it. The
+  panel along the top is gone, both strips of it. At this size each would be a
+  pixel and a half tall and the gap between them less than one, so they read as
+  a grey smear along the top edge rather than as a panel, and the smear costs
+  the body its clean corner.
+
+  With the panel gone the door is centred in the body rather than in what the
+  panel leaves, and it grows: 264 across where the full drawing has 248. The
+  arrow grows with it, and its shaft is 72 wide against the 56 up there, which
+  at sixteen pixels is the difference between two pixels and one.
+
+  An earlier version of this file drew the arrow alone above a bar, with no
+  appliance at all. It was legible but it was a different mark, and Windows
+  shows it in the task bar and the title bar while the same window's larger
+  icon is the appliance.
+
+  On macOS the choice follows the logical size, not the pixel count: a 16pt icon
+  uses this drawing at both densities, so icon_16x16@2x.png is this at 32 pixels
+  and icon_32x32.png is the full drawing at the same 32 pixels.
+
+  Everything is on a 512 grid. packaging/icon/make-icons.sh decides which
+  drawing each size gets.
+
+  Note for whoever edits this next: the comment belongs *inside* the svg
+  element, and that is not a matter of taste. Image loaders detect the format by
+  sniffing the first few hundred bytes for `<svg`, and a comment above the root
+  pushes it out of that window. The file then fails to load with "couldn't
+  recognize the image file format" while being perfectly valid XML, and every
+  other size keeps working because those are PNGs. Measured: 903 bytes of
+  comment above the root broke it, 39 did not.
+  -->
+  <rect width="512" height="512" rx="114" fill="#005daa"/>
+  <rect x="88" y="80" width="336" height="352" rx="48" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="132" fill="#005daa"/>
+  <path d="M220 164 h72 v92 h64 L256 356 156 256 h64 z" fill="#ffffff"/>
+</svg>

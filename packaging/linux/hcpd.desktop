@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Home Connect Profile Downloader
+GenericName=Appliance profile downloader
+Comment=Fetches the profile of every appliance on a Home Connect account
+Exec=hcpd
+Icon=hcpd
+Terminal=false
+Categories=Utility;
+Keywords=homeconnect;bosch;siemens;openhab;homeassistant;hcpy;appliance;
+# The desktop matches a window to this entry by the id the window reports.
+# hcpd sets it in linux_identity(); without the match the task bar entry shows a
+# blank instead of the icon.
+StartupWMClass=hcpd

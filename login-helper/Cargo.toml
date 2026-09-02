@@ -1,0 +1,25 @@
+[package]
+name = "hcpd-login"
+description = "Opens the Home Connect login in a webview and prints the authorization code."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+# Tauri's webview and windowing crates, used without Tauri. The window this
+# opens is the only HTML in the application, and it belongs to Home Connect.
+wry = "0.56"
+tao = "0.37"
+url = "2"
+
+# macOS routes a keyboard shortcut through the application menu, so a window
+# with no menu has no Cmd+V. See the note at `install_edit_menu` in main.rs.
+[target.'cfg(target_os = "macos")'.dependencies]
+muda = "0.19"
+# One message, sent in set_process_name. Both crates are in the tree already,
+# underneath muda and tao, so this names them rather than adding them.
+objc2 = "0.6"
+objc2-foundation = "0.3"

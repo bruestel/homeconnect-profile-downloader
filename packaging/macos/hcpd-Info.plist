@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Linked into the binary itself, not laid beside it.
+
+  macOS takes an application's name from its bundle, and a binary started on its
+  own has none: the menu bar then shows the file name, which is how "hcpd" ended
+  up there. A plist in the __TEXT,__info_plist section gives a bare executable
+  the same identity a bundle would, so the name is right whether it runs from
+  target/release or from inside the .app.
+
+  Inside the bundle the bundle's own plist wins, so the two cannot disagree in
+  a way that matters. See app/build.rs.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>Home Connect Profile Downloader</string>
+  <key>CFBundleDisplayName</key><string>Home Connect Profile Downloader</string>
+  <key>CFBundleIdentifier</key><string>com.github.bruestel.hcpd</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>NSHighResolutionCapable</key><true/>
+</dict>
+</plist>

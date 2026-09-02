@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+  The application mark: a download arrow going into a home appliance.
+
+  A front-loading machine reduced to what survives being shrunk: a body, two
+  shapes along the top for the panel, a big door, and the arrow going into it.
+
+  The short shape is on the left and the long one on the right. Mirrored, so
+  the margins are unchanged: 40 to each side of the body, 20 between the two.
+
+  The panel is two shapes rather than one bar, because one bar reads as a
+  generic box and the pair reads as a washing machine. They are the smallest
+  detail here that earns its place: at 32 pixels the gap between them is a
+  single pixel and still visible. A round knob, which an earlier draft had, was
+  not that lucky.
+
+  The drum sits centred in what the panel leaves, not in the body: the space
+  from the panel's lower edge at 150 to the body's at 448 is 298, the drum is
+  248 across, so 25 remains on each side. It was 42 above and 8 below before,
+  and eight units of white at the bottom read as a mistake rather than as a
+  margin.
+
+  Below 32 pixels even this is too much, and hcpd-small.svg draws the arrow
+  alone. The blue is the one the Electron version used throughout (style.css),
+  so the icon and the window agree.
+
+  Everything is on a 512 grid. packaging/icon/make-icons.sh decides which
+  drawing each size gets.
+
+  Note for whoever edits this next: the comment belongs *inside* the svg
+  element, and that is not a matter of taste. Image loaders detect the format by
+  sniffing the first few hundred bytes for `<svg`, and a comment above the root
+  pushes it out of that window. The file then fails to load with "couldn't
+  recognize the image file format" while being perfectly valid XML, and every
+  other size keeps working because those are PNGs. Measured: 903 bytes of
+  comment above the root broke it, 39 did not.
+  -->
+  <rect width="512" height="512" rx="114" fill="#005daa"/>
+  <rect x="80" y="64" width="352" height="384" rx="44" fill="#ffffff"/>
+  <rect x="120" y="106" width="72" height="44" rx="14" fill="#005daa"/>
+  <rect x="212" y="106" width="180" height="44" rx="14" fill="#005daa"/>
+  <circle cx="256" cy="300" r="124" fill="#005daa"/>
+  <path d="M228 212 h56 v98 h54 L256 396 174 310 h54 z" fill="#ffffff"/>
+</svg>

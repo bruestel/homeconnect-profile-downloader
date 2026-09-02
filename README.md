@@ -1,149 +1,140 @@
 # Home Connect Profile Downloader
 
+> [!NOTE]
+> **This is the 2.0.0 beta, and it is a rewrite.** The application used to be built with Electron and is now written in Rust with a native interface. It does the same job and produces the same files, but it is packaged differently: an installer for Windows and a disk image for macOS, where there used to be a ZIP.
+>
+> Version 1 remains the released version. Its source is on the [`main` branch](https://github.com/bruestel/homeconnect-profile-downloader/tree/main), its packages are on the [releases page](https://github.com/bruestel/homeconnect-profile-downloader/releases), and it still receives security fixes.
+
 This tool fetches profile information for all Home Connect devices linked to your account, enabling direct communication with your appliances over the local network.
 
-![Screenshot Home Connect Profile Downloader UI](doc/screenshot.png "Main UI")
+![The Downloads view, listing the appliances found on the account](doc/screenshot.png "Downloads")
 
 ## Why Use This Tool?
 
 With the gathered profile information, you can directly communicate with your Home Connect devices within your home network. This is particularly useful for integrations such as the [Home Connect Direct binding for openHAB](https://community.openhab.org/t/home-connect-direct-binding-no-cloud/160857/36).
 
-## Run it
+You sign in through the official Home Connect page, the tool collects every appliance on the account, and you decide afterwards what to save: a profile archive for the openHAB binding, a profile archive for Home Assistant, or a configuration file for [hcpy](https://github.com/hcpy2-0/hcpy). Nothing is written to disk until you ask for it.
 
-> **Note:** Please ensure you download the correct package file for your system architecture. Use files labeled `amd64`, `x86_64` or `x64` for 64-bit x86 systems, and files labeled `arm64` for 64-bit ARM-based systems.
+## Install it
+
+> **Note:** Download the package that matches your processor. Files labelled `amd64`, `x86_64` or `intel` are for 64-bit Intel and AMD machines, files labelled `arm64`, `aarch64` or `apple-silicon` for 64-bit ARM machines. On a Mac, the Apple menu under "About This Mac" tells you which one you have.
 
 ### On Linux
 
-#### For RPM-Based Systems
+#### Debian, Ubuntu, Linux Mint
 
-Use the `rpm` command to install the package on RPM-based distributions such as RHEL, CentOS, Fedora, or openSUSE.
+```bash
+sudo dpkg -i hcpd_2.0.0~beta.1-1_amd64.deb
+```
 
-1. Download rpm file.
-2. Open a terminal and navigate to the file you have downloaded.
-3. Run the following command, replacing `homeconnect-profile-downloader_<version>_<amd64|arm64>.rpm` with the target architecture and version in the file name:  
-   ```bash
-   rpm -i homeconnect-profile-downloader_0.9.0_amd64.rpm
-   ```
-4. Start the application (`homeconnect-profile-downloader`)
+Then start **Home Connect Profile Downloader** from the application menu, or run `hcpd` in a terminal.
 
-#### For DEB-Based Systems
+#### Fedora, RHEL, CentOS, openSUSE
 
-Use the dpkg command to install the package on DEB-based distributions such as Debian, Ubuntu, or Linux Mint.
+```bash
+sudo rpm -i hcpd-2.0.0~beta.1-1.x86_64.rpm
+```
 
-1. Download dep file.
-2. Open a terminal and navigate to the file you have downloaded.
-3. Run the following command, replacing `homeconnect-profile-downloader_<version>_<amd64|arm64>.deb` with the target architecture and version in the file name:  
-   ```bash
-   dpkg -i homeconnect-profile-downloader_0.9.0_amd64.deb
-   ```
-4. Start the application (`homeconnect-profile-downloader`)
+> **Note:** The tilde in the deb and rpm names is not a typo. Neither format allows the hyphen that semver uses for a pre-release, and both sort a tilde before everything else, so `2.0.0~beta.1` correctly counts as older than `2.0.0`.
 
+#### Arch Linux
 
-#### For AppImage
+The `PKGBUILD` lives in this repository, under `packaging/aur/`:
 
-The AppImage format allows you to run the application without installation. It is a portable and self-contained executable.
+```bash
+git clone https://github.com/bruestel/homeconnect-profile-downloader.git
+cd homeconnect-profile-downloader/packaging/aur
+makepkg -si
+```
 
-1. Download AppImage file.
-2. Open a terminal and navigate to the file you have downloaded.
-3. Navigate to the directory containing the .AppImage file.
-4. Make the AppImage executable by running: `chmod +x <package-name>.AppImage`
-5. Run the AppImage: `./<package-name>.AppImage`
+#### AppImage
+
+An AppImage runs without being installed.
+
+```bash
+chmod +x Home_Connect_Profile_Downloader-2.0.0-beta.1-x86_64.AppImage
+./Home_Connect_Profile_Downloader-2.0.0-beta.1-x86_64.AppImage
+```
+
+It carries its own copy of everything except the system's WebKit, which the sign-in window needs. On a distribution that does not ship `webkit2gtk-4.1`, install it from the distribution's own packages, or use the deb or the rpm instead.
 
 ### On Windows
 
-To install and run the application on Windows, follow these steps:
+1. Download `hcpd-2.0.0-beta.1-windows-x86_64-setup.exe`.
+2. Double-click it. The installer needs no administrator rights and installs for the current user only, under `%LOCALAPPDATA%\Programs\hcpd`.
+3. Windows Defender SmartScreen will say that it protected your PC, because the installer is not signed by a paying developer. Click **More info**, then **Run anyway**.
+4. Start **Home Connect Profile Downloader** from the Start menu.
 
-1. Download the ZIP file (e.g. `homeconnect-profile-downloader-win32-x64-0.9.0.zip`)
-2. Extract the ZIP file  
-   - Navigate to the location where the `.zip` file was downloaded.
-   - Right-click on the `.zip` file and select **Extract All...**.
-   - Choose a destination folder and click **Extract**.
+To remove it later, use Settings, Apps, Installed apps, or the uninstaller in the installation folder.
 
-3. Run the application  
-   - Open the folder where the files were extracted.
-   - Locate the application executable file (e.g., `homeconnect-profile-downloader.exe`).
-   - Double-click the `.exe` file to run the application.
-   - Unsigned Application Warning: When running the application, Windows Defender SmartScreen may display a warning that the file could be dangerous because it is not digitally signed.  
-      - This warning can be safely ignored.  
-      - To proceed:
-        1. Click **More info** on the warning message.
-        2. Select **Run anyway** to start the application.
+### On macOS
 
-### On Mac OS
+1. Download `hcpd-2.0.0-beta.1-macos-apple-silicon.dmg` on an Apple silicon Mac, or `hcpd-2.0.0-beta.1-macos-intel.dmg` on an Intel Mac.
+2. Open the disk image and drag **Home Connect Profile Downloader** onto the **Applications** folder, then eject the image.
+3. Open the application from the Applications folder. macOS will refuse, saying it cannot verify that the app is free of malware.
+4. Open **System Settings**, go to **Privacy & Security**, and scroll to the bottom. A line about the blocked application is there with an **Open Anyway** button. Click it and confirm.
 
-#### Running the Pre-built Application
+The application starts normally from then on.
 
-When you download a pre-built application from the releases, macOS may prevent it from running because it is not from a registered developer. If you see an error message, you can resolve this by removing the "quarantine" attribute that macOS adds to downloaded files.
+The reason is that releases carry an ad-hoc signature rather than a paid Apple Developer ID, and they are not notarised. macOS applies this check to anything carrying the quarantine mark that browsers and mail clients attach to downloads, so it appears once per download and not at all for a copy that arrives by other means.
 
-1.  After downloading and unzipping the application, if you see an error message when trying to open it, click **Cancel**.
-2.  Open the **Terminal** app (you can find it using Spotlight with `Cmd + Space`).
-3.  Type the command `xattr -cr ` (note the space at the end) but do not press Enter yet.
-4.  Drag the application file (e.g., `homeconnect-profile-downloader.app`) from your Finder window into the Terminal window. The path to the app will be automatically appended to your command.
-5.  The full command will look something like this: `xattr -cr /Users/YourName/Downloads/homeconnect-profile-downloader.app`
-6.  Press **Enter** to run the command.
-7.  You should now be able to open the application by double-clicking it.
+If you would rather not go through System Settings, the same thing can be done in a terminal, and the drag-and-drop step is unchanged:
 
-#### Building and Running from Source (Alternative Method)
+```bash
+xattr -dr com.apple.quarantine "/Applications/Home Connect Profile Downloader.app"
+```
 
-If you prefer, you can build and run the application locally from the source code.
+Note that the right-click, **Open** trick that older instructions mention no longer works reliably on macOS 14 and later.
 
-1.  **Install Node.js and npm**
-    *   Ensure you have Homebrew installed. If not, follow the instructions at [brew.sh](https://brew.sh).
-    *   Install Node.js (version 22) and npm:
-        ```bash
-        brew install node@22
-        ```
-    *   Follow any post-installation instructions from Homebrew and then open a new terminal window.
-    *   Verify the installation:
-        ```bash
-        node -v
-        npm -v
-        ```
+## Using it
 
-2.  **Clone the Repository**
-    ```bash
-    git clone https://github.com/bruestel/homeconnect-profile-downloader.git
-    ```
+1. Pick the Home Connect cloud your account belongs to. This is where the account was registered, which is not necessarily where you or the appliances are. If you pick the wrong one, the tool says so after signing in and offers the other.
+2. Sign in. A separate window opens the official Home Connect page, which hands over to SingleKey ID. The tool never sees your password: it waits for the redirect at the end and takes the authorisation code from it.
+3. Watch the activity list. Each step can be unfolded for the details, and a step that produced a warning stays unfolded.
+4. Open **Downloads**, choose an appliance, and save. Only then are you asked for the format and the destination, and only then is anything written.
 
-3.  **Navigate to the Project Directory**
-    ```bash
-    cd homeconnect-profile-downloader
-    ```
+## Build it from source
 
-4.  **Install Dependencies**
-    ```bash
-    npm install
-    ```
-
-5.  **Run the Application**
-    ```bash
-    npm start
-    ```
-
-## Build and Run
+The application is a Rust workspace and needs no Node.js.
 
 ### Prerequisites
 
-Ensure that you have [Node.js](https://nodejs.org/) 22+ installed on your system. You can verify this by running the following commands in your terminal:
+A Rust toolchain, from [rustup.rs](https://rustup.rs) or from your distribution.
+
+On Linux the sign-in window uses the system WebKit, so its development files have to be present:
 
 ```bash
-node -v
-npm -v
+# Debian, Ubuntu
+sudo apt install libwebkit2gtk-4.1-dev libsoup-3.0-dev libxkbcommon-dev libwayland-dev
+
+# Fedora
+sudo dnf install webkit2gtk4.1-devel libsoup3-devel libxkbcommon-devel wayland-devel
+
+# Arch
+sudo pacman -S --needed webkit2gtk-4.1 libsoup3 libxkbcommon wayland
 ```
-If these commands return a version number, Node.js and npm are installed. Otherwise, follow the [Node.js installation guide](https://nodejs.org/en/download/package-manager) to set it up.
 
-### Quick Start
+macOS and Windows need nothing beyond the toolchain: both carry the webview that the sign-in uses.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/bruestel/homeconnect-profile-downloader.git
-   ```
-2. Install dependencies:
-   ```bash
-   cd homeconnect-profile-downloader
-   npm install
-   ```
-3. Start the application:
-   ```bash
-   npm start
-   ```
+### Quick start
+
+```bash
+git clone https://github.com/bruestel/homeconnect-profile-downloader.git
+cd homeconnect-profile-downloader
+cargo build --release --workspace
+./target/release/hcpd
+```
+
+Build the whole workspace rather than the application alone. The sign-in runs in a second executable, `hcpd-login`, and the application looks for it next to itself, so `cargo run -p hcpd` on its own gives you a build whose sign-in cannot start.
+
+The workspace holds four crates: `app` is the interface, `login-helper` is the sign-in process, and `hcpd-core` and `hcpd-client` hold the profile documents and the API calls.
+
+Tests, lints and formatting are what CI checks:
+
+```bash
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all --check
+```
+
+Notes on packaging each platform are in [`packaging/README.md`](packaging/README.md).

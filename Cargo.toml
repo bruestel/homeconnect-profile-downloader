@@ -1,0 +1,34 @@
+# The Rust port of the Home Connect Profile Downloader.
+#
+# Four pieces, and the split is deliberate:
+#
+#   crates/hcpd-core    everything with no I/O in it: regions, PKCE, the XML,
+#                       the file names, the shape of a profile. Testable without
+#                       a network or an account, which is where the tests are.
+#   crates/hcpd-client  the Home Connect API, over reqwest.
+#   login-helper        a webview, alive only until the OAuth code arrives.
+#   app                 the window, in iced.
+[workspace]
+resolver = "3"
+members = ["app", "crates/hcpd-core", "crates/hcpd-client", "login-helper"]
+
+[workspace.package]
+version = "2.0.0-beta.1"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/bruestel/homeconnect-profile-downloader"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+# preserve_order so the JSON we write keeps the key order the Electron version
+# wrote. The files are read by people and diffed against older downloads.
+serde_json = { version = "1", features = ["preserve_order"] }
+thiserror = "2"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
+
+[profile.release]
+# A tool that runs for a minute and writes some files; size is worth more than
+# the last few percent of speed.
+opt-level = "s"
+lto = true
+strip = true

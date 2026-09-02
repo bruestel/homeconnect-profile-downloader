@@ -1,0 +1,97 @@
+[package]
+name = "hcpd"
+description = "Fetches Home Connect appliance profiles for local communication."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+hcpd-core = { path = "../crates/hcpd-core" }
+hcpd-client = { path = "../crates/hcpd-client" }
+serde.workspace = true
+serde_json.workspace = true
+iced = "0.14"
+# The system's own folder chooser. Default features put it on the XDG portal
+# under Linux rather than on GTK, so it adds a dialog without adding a desktop
+# toolkit to the build.
+rfd = "0.17"
+
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+zip = { version = "8.6", default-features = false, features = ["deflate"] }
+
+# The menu bar on macOS. Not decoration: a macOS application without one has no
+# Cmd+Q, and no Cmd+C either. See `install_menu` in main.rs.
+[target.'cfg(target_os = "macos")'.dependencies]
+muda = "0.19"
+# One message, sent in install_menu. Both crates are in the tree already,
+# underneath muda and winit, so this names them rather than adding them.
+objc2 = "0.6"
+objc2-foundation = "0.3"
+
+# Windows takes an executable's icon from a resource inside the file, not from
+# anything beside it. Without this the installer's shortcut points at a file
+# with the default icon.
+#
+# Not under a target cfg, and that is not an oversight: a build script is
+# compiled for the machine doing the building, so a `cfg(target_os)` there
+# answers for the host. Gating it that way makes the crate vanish exactly when
+# building for Windows from anywhere else. build.rs decides instead, from
+# CARGO_CFG_TARGET_OS.
+[build-dependencies]
+winresource = "0.1"
+# Decodes the icon once, at build time, so the binary carries raw pixels and no
+# image decoder. See build.rs.
+png = "0.17"
+
+# --- Linux packages ---------------------------------------------------------
+#
+# Both tools are given the same set of files: the two binaries, the desktop
+# entry and the icons. The helper is not optional, because the application looks
+# for it beside itself and cannot sign in without it.
+#
+# The icons are listed size by size rather than by a glob. A glob that matches
+# nothing is not an error in either tool, so a renamed directory would produce a
+# package that installs and then shows a blank in the menu.
+
+[package.metadata.deb]
+name = "hcpd"
+maintainer = "Jonas Bruestel"
+copyright = "Copyright (c) Jonas Bruestel"
+license-file = ["../LICENSE", "0"]
+section = "utils"
+priority = "optional"
+extended-description = """Fetches the profile of every appliance on a Home Connect account: the description and keys they need to be reached over a local network, for the openHAB binding, the Home Assistant integration, or hcpy."""
+depends = "$auto"
+assets = [
+    ["../target/release/hcpd", "usr/bin/", "755"],
+    ["../target/release/hcpd-login", "usr/bin/", "755"],
+    ["../packaging/linux/hcpd.desktop", "usr/share/applications/", "644"],
+    ["../packaging/icon/rendered/hicolor/16x16/apps/hcpd.png", "usr/share/icons/hicolor/16x16/apps/", "644"],
+    ["../packaging/icon/rendered/hicolor/24x24/apps/hcpd.png", "usr/share/icons/hicolor/24x24/apps/", "644"],
+    ["../packaging/icon/rendered/hicolor/32x32/apps/hcpd.png", "usr/share/icons/hicolor/32x32/apps/", "644"],
+    ["../packaging/icon/rendered/hicolor/48x48/apps/hcpd.png", "usr/share/icons/hicolor/48x48/apps/", "644"],
+    ["../packaging/icon/rendered/hicolor/64x64/apps/hcpd.png", "usr/share/icons/hicolor/64x64/apps/", "644"],
+    ["../packaging/icon/rendered/hicolor/128x128/apps/hcpd.png", "usr/share/icons/hicolor/128x128/apps/", "644"],
+    ["../packaging/icon/rendered/hicolor/256x256/apps/hcpd.png", "usr/share/icons/hicolor/256x256/apps/", "644"],
+    ["../packaging/icon/rendered/hicolor/512x512/apps/hcpd.png", "usr/share/icons/hicolor/512x512/apps/", "644"],
+    ["../packaging/icon/rendered/hicolor/scalable/apps/hcpd.svg", "usr/share/icons/hicolor/scalable/apps/", "644"],
+]
+
+[package.metadata.generate-rpm]
+name = "hcpd"
+summary = "Fetches Home Connect appliance profiles for local communication"
+assets = [
+    { source = "target/release/hcpd", dest = "/usr/bin/hcpd", mode = "755" },
+    { source = "target/release/hcpd-login", dest = "/usr/bin/hcpd-login", mode = "755" },
+    { source = "packaging/linux/hcpd.desktop", dest = "/usr/share/applications/hcpd.desktop", mode = "644" },
+    { source = "packaging/icon/rendered/hicolor/16x16/apps/hcpd.png", dest = "/usr/share/icons/hicolor/16x16/apps/hcpd.png", mode = "644" },
+    { source = "packaging/icon/rendered/hicolor/24x24/apps/hcpd.png", dest = "/usr/share/icons/hicolor/24x24/apps/hcpd.png", mode = "644" },
+    { source = "packaging/icon/rendered/hicolor/32x32/apps/hcpd.png", dest = "/usr/share/icons/hicolor/32x32/apps/hcpd.png", mode = "644" },
+    { source = "packaging/icon/rendered/hicolor/48x48/apps/hcpd.png", dest = "/usr/share/icons/hicolor/48x48/apps/hcpd.png", mode = "644" },
+    { source = "packaging/icon/rendered/hicolor/64x64/apps/hcpd.png", dest = "/usr/share/icons/hicolor/64x64/apps/hcpd.png", mode = "644" },
+    { source = "packaging/icon/rendered/hicolor/128x128/apps/hcpd.png", dest = "/usr/share/icons/hicolor/128x128/apps/hcpd.png", mode = "644" },
+    { source = "packaging/icon/rendered/hicolor/256x256/apps/hcpd.png", dest = "/usr/share/icons/hicolor/256x256/apps/hcpd.png", mode = "644" },
+    { source = "packaging/icon/rendered/hicolor/512x512/apps/hcpd.png", dest = "/usr/share/icons/hicolor/512x512/apps/hcpd.png", mode = "644" },
+    { source = "packaging/icon/rendered/hicolor/scalable/apps/hcpd.svg", dest = "/usr/share/icons/hicolor/scalable/apps/hcpd.svg", mode = "644" },
+]

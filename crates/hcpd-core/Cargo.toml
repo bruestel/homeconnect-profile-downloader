@@ -1,0 +1,26 @@
+[package]
+name = "hcpd-core"
+description = "Regions, PKCE, the appliance XML, and the files we write. No I/O."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+# A read-only DOM rather than a streaming parser: the mapping we have to
+# reproduce walks the tree and cares how deep it is, which is awkward to express
+# as a stream of events and plain as a tree.
+roxmltree = "0.21"
+sha2 = "0.10"
+base64 = "0.22"
+rand = "0.9"
+url = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+# In memory only: the archive arrives as bytes from the API and leaves as bytes
+# for the caller to write, so this stays on the side of the crate that has no
+# file system in it.
+zip = { version = "8.6", default-features = false, features = ["deflate"] }
+

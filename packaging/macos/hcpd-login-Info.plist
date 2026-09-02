@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The same trick for the sign-in helper, which is a process of its own and so
+  gets a menu bar of its own while its window is in front. Without this it reads
+  "hcpd-login".
+
+  Named for what it is rather than after the application: while that window is
+  in front, the only thing on screen is Home Connect's sign-in page, and calling
+  the menu after the downloader would suggest the page belongs to us.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>Home Connect Login</string>
+  <key>CFBundleDisplayName</key><string>Home Connect Login</string>
+  <key>CFBundleIdentifier</key><string>com.github.bruestel.hcpd.login</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>NSHighResolutionCapable</key><true/>
+</dict>
+</plist>

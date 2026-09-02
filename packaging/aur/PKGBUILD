@@ -1,0 +1,99 @@
+# Maintainer: Jonas Bruestel <https://github.com/bruestel>
+#
+# Builds the Home Connect Profile Downloader as an Arch package, from your own
+# clone:
+#
+#   git clone https://github.com/bruestel/homeconnect-profile-downloader.git
+#   cd homeconnect-profile-downloader/packaging/aur && makepkg -si
+#
+# Not published to the AUR. It lives here so anyone on Arch can build their own,
+# which is one command and needs no account, no trust in a third party's build,
+# and nothing kept in step with a second repository.
+#
+# Why a package at all, when there is an AppImage: an AppImage is a file in a
+# download folder that nothing tracks. A package is owned by pacman, so it
+# upgrades cleanly and, the part that matters, uninstalls.
+#
+# `source` is this repository by path rather than by URL, and deliberately: it
+# packages the clone this file is sitting in, at the checked-out branch's HEAD.
+# Naming the remote would fetch it again and package whatever is on the default
+# branch instead of what you are looking at.
+
+pkgname=homeconnect-profile-downloader
+pkgver=2.0.0
+pkgrel=1
+pkgdesc='Fetches Home Connect appliance profiles for local communication'
+arch=('x86_64')
+url='https://github.com/bruestel/homeconnect-profile-downloader'
+license=('MIT')
+
+# webkit2gtk-4.1 draws the sign-in window, and gtk3 is underneath it. Nothing
+# here is needed for the main window: that one is drawn by the application
+# itself, in software where there is no GPU.
+depends=('webkit2gtk-4.1' 'gtk3')
+makedepends=('cargo' 'git')
+optdepends=('xdg-desktop-portal: the system folder chooser in the save dialog')
+
+provides=("$pkgname")
+conflicts=("$pkgname")
+
+# Link-time optimisation off, and not as a precaution. With `lto` in
+# makepkg.conf's OPTIONS the link fails on the TLS library's hand-written
+# assembly, and the error arrives as a page of undefined symbols with no mention
+# of LTO in it. `debug` is off for a plainer reason: a release build here carries
+# no debug info to split into a second package.
+options=(!lto !debug)
+
+source=("$pkgname::git+file://$(realpath "${startdir:-.}/../..")")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$srcdir/$pkgname"
+    # The version the workspace reports, so the package and the application
+    # agree about which one this is, and so pacman sees an upgrade when it
+    # moves. With sed rather than a TOML parser: pulling in python for one field
+    # would make it a build dependency of every package anyone builds.
+    sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1
+}
+
+prepare() {
+    cd "$srcdir/$pkgname"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$srcdir/$pkgname"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --release --locked --workspace
+}
+
+check() {
+    cd "$srcdir/$pkgname"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo test --release --locked --workspace
+}
+
+package() {
+    cd "$srcdir/$pkgname"
+
+    # Both, always. The application looks for the helper beside itself, so an
+    # install with only one of them is an install that cannot sign in.
+    install -Dm755 target/release/hcpd "$pkgdir/usr/bin/hcpd"
+    install -Dm755 target/release/hcpd-login "$pkgdir/usr/bin/hcpd-login"
+
+    for size in 16 24 32 48 64 128 256 512; do
+        install -Dm644 "packaging/icon/rendered/hicolor/${size}x${size}/apps/hcpd.png" \
+            "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/hcpd.png"
+    done
+    install -Dm644 packaging/icon/rendered/hicolor/hcpd.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/hcpd.svg"
+
+    install -Dm644 packaging/linux/hcpd.desktop \
+        "$pkgdir/usr/share/applications/hcpd.desktop"
+
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}
