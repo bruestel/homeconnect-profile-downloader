@@ -1,5 +1,10 @@
 # Home Connect Profile Downloader
 
+> [!NOTE]
+> **A 2.0.0 beta is available.** The application has been rewritten in Rust with a native interface, instead of Electron. It does the same job and produces the same files, and it is packaged differently: an installer for Windows and a disk image for macOS, where this version ships a ZIP.
+>
+> The beta is on the [`2.x` branch](https://github.com/bruestel/homeconnect-profile-downloader/tree/2.x), and its packages are at [2.0.0-beta.1](https://github.com/bruestel/homeconnect-profile-downloader/releases/tag/2.0.0-beta.1). This version stays the released one in the meantime and still receives security fixes.
+
 This tool fetches profile information for all Home Connect devices linked to your account, enabling direct communication with your appliances over the local network.
 
 ![Screenshot Home Connect Profile Downloader UI](doc/screenshot.png "Main UI")
