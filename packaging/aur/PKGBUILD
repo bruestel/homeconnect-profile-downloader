@@ -20,7 +20,7 @@
 # branch instead of what you are looking at.
 
 pkgname=homeconnect-profile-downloader
-pkgver=2.0.0
+pkgver=2.0.0beta.2
 pkgrel=1
 pkgdesc='Fetches Home Connect appliance profiles for local communication'
 arch=('x86_64')
@@ -53,7 +53,13 @@ pkgver() {
     # agree about which one this is, and so pacman sees an upgrade when it
     # moves. With sed rather than a TOML parser: pulling in python for one field
     # would make it a build dependency of every package anyone builds.
-    sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1
+    #
+    # The hyphen of a semver pre-release goes, because pacman does not allow one
+    # in pkgver, and it goes without a replacement, because a separator is what
+    # would break the order: vercmp puts 2.0.0beta.2 before 2.0.0, but
+    # 2.0.0.beta.2, 2.0.0_beta.2 and 2.0.0~beta.2 all after it, which would
+    # leave the final release looking like a downgrade.
+    sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1 | tr -d '-'
 }
 
 prepare() {
@@ -88,7 +94,7 @@ package() {
         install -Dm644 "packaging/icon/rendered/hicolor/${size}x${size}/apps/hcpd.png" \
             "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/hcpd.png"
     done
-    install -Dm644 packaging/icon/rendered/hicolor/hcpd.svg \
+    install -Dm644 packaging/icon/rendered/hicolor/scalable/apps/hcpd.svg \
         "$pkgdir/usr/share/icons/hicolor/scalable/apps/hcpd.svg"
 
     install -Dm644 packaging/linux/hcpd.desktop \
