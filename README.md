@@ -24,7 +24,7 @@ You sign in through the official Home Connect page, the tool collects every appl
 #### Debian, Ubuntu, Linux Mint
 
 ```bash
-sudo dpkg -i hcpd_2.0.0~beta.2-1_amd64.deb
+sudo dpkg -i hcpd_2.0.0.beta.2-1_amd64.deb
 ```
 
 Then start **Home Connect Profile Downloader** from the application menu, or run `hcpd` in a terminal.
@@ -32,10 +32,10 @@ Then start **Home Connect Profile Downloader** from the application menu, or run
 #### Fedora, RHEL, CentOS, openSUSE
 
 ```bash
-sudo rpm -i hcpd-2.0.0~beta.2-1.x86_64.rpm
+sudo rpm -i hcpd-2.0.0.beta.2-1.x86_64.rpm
 ```
 
-> **Note:** The tilde in the deb and rpm names is not a typo. Neither format allows the hyphen that semver uses for a pre-release, and both sort a tilde before everything else, so `2.0.0~beta.1` correctly counts as older than `2.0.0`.
+> **Note:** Inside the package the version is `2.0.0~beta.2`, with a tilde. Neither format allows the hyphen that semver uses for a pre-release, and both sort a tilde before everything else, so the beta correctly counts as older than `2.0.0`. GitHub does not allow a tilde in a download's name and replaces it with a dot, which is why the files are called `2.0.0.beta.2`.
 
 #### Arch Linux
 
