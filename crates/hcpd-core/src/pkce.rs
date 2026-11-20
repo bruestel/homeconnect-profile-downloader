@@ -2,7 +2,7 @@
 //! version does exactly this with node's `crypto` (main.js:186).
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use rand::RngCore;
+use rand::Rng;
 use sha2::{Digest, Sha256};
 
 /// Random bytes, base64url, no padding: the form every one of these values

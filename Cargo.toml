@@ -24,12 +24,17 @@ serde = { version = "1", features = ["derive"] }
 # wrote. The files are read by people and diffed against older downloads.
 serde_json = { version = "1", features = ["preserve_order"] }
 thiserror = "2"
-# Both sets of root certificates. The built-in ones keep a machine with an empty
-# or broken store working; the system's own let in the roots that antivirus
-# programs and company proxies install to inspect HTTPS. With the built-in set
-# alone, such a machine signs in (the webview uses the system store) and then
-# fails the token request with "error sending request" (issue #25).
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-webpki-roots", "rustls-tls-native-roots", "blocking"] }
+# rustls with the platform verifier: certificates are checked by the operating
+# system, against its own store. That store holds the roots antivirus programs
+# and company proxies install to inspect HTTPS; with a built-in set alone, such
+# a machine signs in (the webview uses the system store) and then fails the
+# token request with "error sending request" (issue #25).
+#
+# "no-provider" because reqwest's own choice is aws-lc-rs, a C build that would
+# be new to every release runner. ring, which 0.12 used and the runners already
+# build, is installed instead; see hcpd-client's `Client::connect`.
+reqwest = { version = "0.13", default-features = false, features = ["json", "form", "blocking", "system-proxy", "rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 
 [profile.release]
 # A tool that runs for a minute and writes some files; size is worth more than

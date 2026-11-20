@@ -55,7 +55,8 @@ fn decode_icon(root: &std::path::Path) {
     let file = std::fs::File::open(&source).expect("the icon is where it is expected");
     let decoder = png::Decoder::new(std::io::BufReader::new(file));
     let mut reader = decoder.read_info().expect("the icon is a PNG");
-    let mut pixels = vec![0; reader.output_buffer_size()];
+    let size = reader.output_buffer_size().expect("the icon fits in memory");
+    let mut pixels = vec![0; size];
     let info = reader.next_frame(&mut pixels).expect("the icon has a frame");
 
     assert_eq!(info.color_type, png::ColorType::Rgba, "the icon has to carry an alpha channel");

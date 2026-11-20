@@ -44,7 +44,7 @@ pub fn documents(archive: &[u8]) -> Result<(String, String), Error> {
     let (mut device_description, mut feature_mapping) = (None, None);
     for index in 0..zip.len() {
         let mut entry = zip.by_index(index).map_err(zip_error)?;
-        let name = entry.name().to_owned();
+        let name = entry.name().map_err(zip_error)?.into_owned();
         let slot = if name.ends_with(DEVICE_DESCRIPTION) {
             &mut device_description
         } else if name.ends_with(FEATURE_MAPPING) {
@@ -81,7 +81,7 @@ pub fn with_profile(
     for index in 0..source.len() {
         let entry = source.by_index(index).map_err(zip_error)?;
         // An archive downloaded twice must not grow a second profile.
-        if entry.name() == format!("{ha_id}.json") {
+        if entry.name().map_err(zip_error)? == format!("{ha_id}.json") {
             continue;
         }
         out.raw_copy_file(entry).map_err(zip_error)?;
@@ -111,7 +111,7 @@ pub fn entries(archive: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Error> {
     let mut out = Vec::with_capacity(zip.len());
     for index in 0..zip.len() {
         let mut entry = zip.by_index(index).map_err(zip_error)?;
-        let name = entry.name().to_owned();
+        let name = entry.name().map_err(zip_error)?.into_owned();
         let mut bytes = Vec::new();
         entry.read_to_end(&mut bytes).map_err(|error| Error::msg(format!("{name}: {error}")))?;
         out.push((name, bytes));

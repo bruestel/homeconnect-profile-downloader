@@ -15,15 +15,15 @@ iced = "0.14"
 # The system's own folder chooser. Default features put it on the XDG portal
 # under Linux rather than on GTK, so it adds a dialog without adding a desktop
 # toolkit to the build.
-rfd = "0.17"
+rfd = "0.18"
 
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-zip = { version = "8.6", default-features = false, features = ["deflate"] }
+zip = { version = "9.8", default-features = false, features = ["deflate"] }
 
 # The menu bar on macOS. Not decoration: a macOS application without one has no
 # Cmd+Q, and no Cmd+C either. See `install_menu` in main.rs.
 [target.'cfg(target_os = "macos")'.dependencies]
-muda = "0.19"
+muda = "0.21"
 # One message, sent in install_menu. Both crates are in the tree already,
 # underneath muda and winit, so this names them rather than adding them.
 objc2 = "0.6"
@@ -42,7 +42,7 @@ objc2-foundation = "0.3"
 winresource = "0.1"
 # Decodes the icon once, at build time, so the binary carries raw pixels and no
 # image decoder. See build.rs.
-png = "0.17"
+png = "0.18"
 
 # --- Linux packages ---------------------------------------------------------
 #

@@ -87,6 +87,10 @@ impl Client {
     /// Exchanges the authorization code for a token and reads the account id
     /// out of it.
     pub fn connect(region: Region, code: &str, verifier: &str) -> Result<Self> {
+        // reqwest is built without a crypto provider of its own (see the
+        // workspace Cargo.toml), so one has to be installed before the first
+        // client. An error only means one is installed already.
+        let _ = rustls::crypto::ring::default_provider().install_default();
         let http = reqwest::blocking::Client::builder()
             .user_agent(concat!("hcpd/", env!("CARGO_PKG_VERSION")))
             // Both spelled out, though only the first changes behaviour.
