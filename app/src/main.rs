@@ -16,7 +16,7 @@ use chrono::{DateTime, Local};
 use hcpd_core::settings::Settings;
 use hcpd_core::{Region, Target, naming};
 use iced::theme::Palette;
-use iced::widget::{button, column, container, pick_list, row, scrollable, text};
+use iced::widget::{button, column, container, pick_list, row, scrollable, text, tooltip};
 use iced::{Center, Color, Element, Fill, Font, Task, Theme, window};
 use std::path::PathBuf;
 use std::time::Instant;
@@ -596,10 +596,24 @@ fn save_dialog<'a>(state: &'a State, dialog: &'a SaveDialog) -> Element<'a, Mess
             field(
                 "Destination",
                 row![
-                    text(dialog.destination.display().to_string())
-                        .size(12)
-                        .font(Font::MONOSPACE)
-                        .width(Fill),
+                    // One line, always. The window has a fixed height, and a path
+                    // long enough to wrap pushed the buttons out of it. The full
+                    // path is a hover away.
+                    tooltip(
+                        text(shorten_path(&dialog.destination.display().to_string(), PATH_CHARS))
+                            .size(12)
+                            .font(Font::MONOSPACE)
+                            .wrapping(text::Wrapping::None),
+                        container(
+                            text(dialog.destination.display().to_string())
+                                .size(12)
+                                .font(Font::MONOSPACE),
+                        )
+                        .padding([4, 8])
+                        .style(container::rounded_box),
+                        tooltip::Position::Bottom,
+                    ),
+                    container(text("")).width(Fill),
                     button(text("Choose").size(FORM_TEXT))
                         .padding([FORM_PAD_Y, 13.0])
                         .style(button::secondary)
@@ -629,6 +643,36 @@ fn save_dialog<'a>(state: &'a State, dialog: &'a SaveDialog) -> Element<'a, Mess
     .width(Fill)
     .height(Fill)
     .into()
+}
+
+/// How many characters of the destination fit on its line in the save dialog.
+///
+/// Counted rather than measured, which works because the path is set in a
+/// monospace font, about 7.2 px a character at size 12, and the dialog cannot
+/// be resized: 560 wide, less the padding, the label column, the spacing and
+/// the Choose button leaves some 340 px. A few characters are kept in hand for
+/// a font that runs wider.
+const PATH_CHARS: usize = 44;
+
+/// A path cut from the front to at most `max` characters, as "…/rest".
+///
+/// The end is the part worth seeing: the folder the files go into, and the one
+/// that holds it. The cut falls on a separator, so no folder name is shown
+/// half, unless that would throw away more than half the line: then a name is
+/// cut instead, since most of it says more than none of it.
+fn shorten_path(path: &str, max: usize) -> String {
+    let length = path.chars().count();
+    if length <= max {
+        return path.to_owned();
+    }
+    // One character goes to the ellipsis.
+    let tail: String = path.chars().skip(length - (max - 1)).collect();
+    match tail.find(['/', '\\']) {
+        Some(at) if tail[..at].chars().count() <= (max - 1) / 2 => {
+            format!("\u{2026}{}", &tail[at..])
+        }
+        _ => format!("\u{2026}{tail}"),
+    }
 }
 
 fn main_window(state: &State) -> Element<'_, Message> {
@@ -1050,4 +1094,43 @@ fn main() -> iced::Result {
             ])
         })
         .run()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::shorten_path;
+
+    #[test]
+    fn a_short_path_is_left_alone() {
+        assert_eq!(shorten_path("/home/me/profiles", 44), "/home/me/profiles");
+    }
+
+    #[test]
+    fn a_long_path_keeps_its_end_and_cuts_at_a_separator() {
+        let path = "/home/me/Dropbox/Dokumente/Hausautomatisierung/openhab/Profile/2026.11.20";
+        assert_eq!(shorten_path(path, 44), "\u{2026}/openhab/Profile/2026.11.20");
+    }
+
+    #[test]
+    fn a_cut_that_would_lose_most_of_the_line_falls_inside_a_name() {
+        // The screenshot that started this: cutting at the separator would have
+        // left "…/2026.11.20".
+        let path = "/home/me/Dropbox/Dokumente/Hausautomatisierung und Co/openhab \
+                    homeconnect binding/Meine Home Connect Geräteprofile/2026.11.20";
+        let short = shorten_path(path, 44);
+        assert_eq!(short, "\u{2026}Meine Home Connect Geräteprofile/2026.11.20");
+        assert_eq!(short.chars().count(), 44);
+    }
+
+    #[test]
+    fn a_windows_path_is_cut_at_a_backslash() {
+        let short = shorten_path(r"C:\Users\someone\Documents\Home Connect\2026.11.20", 30);
+        assert_eq!(short, "\u{2026}\\Home Connect\\2026.11.20");
+    }
+
+    #[test]
+    fn a_single_long_name_is_cut_mid_name() {
+        let short = shorten_path("/abcdefghijklmnopqrstuvwxyz", 10);
+        assert_eq!(short, "\u{2026}rstuvwxyz");
+    }
 }
