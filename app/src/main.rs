@@ -44,6 +44,10 @@ struct Step {
     started: Instant,
     took: Option<f32>,
     expanded: bool,
+    /// The technical reasons behind a failure, outermost first. Shown only on
+    /// request: they are what an issue needs, not what most people want to read.
+    causes: Vec<String>,
+    show_causes: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -106,8 +110,9 @@ enum Message {
     Detail(String),
     Warning(String),
     WrongRegion(Region),
-    Finished(Result<Vec<job::Fetched>, String>),
+    Finished(Result<Vec<job::Fetched>, job::Failure>),
     ToggleStep(usize),
+    ToggleCauses(usize),
     OpenDialog(usize),
     CloseDialog,
     DialogTarget(Target),
@@ -162,6 +167,8 @@ impl State {
             // The step in progress is the one worth reading, so it is the one
             // left open. It closes itself when the next one starts.
             expanded: true,
+            causes: Vec::new(),
+            show_causes: false,
         });
     }
 
@@ -396,9 +403,10 @@ fn update(state: &mut State, message: Message) -> Task<Message> {
             state.panel = Panel::Downloads;
             close
         }
-        Message::Finished(Err(error)) => {
+        Message::Finished(Err(failure)) => {
             if let Some(step) = state.steps.last_mut() {
-                step.detail.push(error);
+                step.detail.push(failure.message);
+                step.causes = failure.causes;
             }
             state.close_step(StepState::Failed);
             state.running = false;
@@ -407,6 +415,12 @@ fn update(state: &mut State, message: Message) -> Task<Message> {
         Message::ToggleStep(index) => {
             if let Some(step) = state.steps.get_mut(index) {
                 step.expanded = !step.expanded;
+            }
+            Task::none()
+        }
+        Message::ToggleCauses(index) => {
+            if let Some(step) = state.steps.get_mut(index) {
+                step.show_causes = !step.show_causes;
             }
             Task::none()
         }
@@ -756,12 +770,33 @@ fn activity(state: &State) -> Element<'_, Message> {
             return header.into();
         }
 
-        let lines = column(
+        let mut lines = column(
             step.detail
                 .iter()
                 .map(|line| text(line).size(12).font(Font::MONOSPACE).style(muted).into()),
         )
         .spacing(3);
+
+        // The causes stay folded behind a link of their own, so a failure reads
+        // as one sentence until someone asks why.
+        if !step.causes.is_empty() {
+            let label = if step.show_causes { "Hide details" } else { "Show details" };
+            lines = lines.push(
+                button(text(label).size(11.5))
+                    .padding(0)
+                    .style(button::text)
+                    .on_press(Message::ToggleCauses(index)),
+            );
+            if step.show_causes {
+                lines = lines.extend(step.causes.iter().map(|cause| {
+                    text(format!("caused by: {cause}"))
+                        .size(12)
+                        .font(Font::MONOSPACE)
+                        .style(muted)
+                        .into()
+                }));
+            }
+        }
 
         // Indented to sit under the title rather than under the arrow, with a
         // hairline down the left so a long step reads as one block. The line is

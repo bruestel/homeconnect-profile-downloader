@@ -25,8 +25,37 @@ pub enum Error {
     Status(reqwest::StatusCode),
     #[error("{0}")]
     Message(String),
+    /// reqwest's own message, which stops at "error sending request for url
+    /// (...)". The why is further down; see [`Error::causes`].
     #[error(transparent)]
     Http(#[from] reqwest::Error),
+}
+
+impl Error {
+    /// What lies underneath the message, outermost first, one line per cause.
+    ///
+    /// For a request that failed, this is where the part a user can act on or
+    /// put in an issue lives: a certificate the machine does not trust, a
+    /// proxy, a name that does not resolve. Kept apart from the message because
+    /// it is technical and long, and most people never need it.
+    ///
+    /// A cause with the same text as the one above it is left out: hyper and
+    /// reqwest sometimes wrap an error in one that only repeats it.
+    pub fn causes(&self) -> Vec<String> {
+        let Error::Http(error) = self else { return Vec::new() };
+        let mut causes: Vec<String> = Vec::new();
+        let mut above = error.to_string();
+        let mut source = std::error::Error::source(error);
+        while let Some(cause) = source {
+            let text = cause.to_string();
+            if text != above {
+                causes.push(text.clone());
+            }
+            above = text;
+            source = cause.source();
+        }
+        causes
+    }
 }
 
 type Result<T> = std::result::Result<T, Error>;

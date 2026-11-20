@@ -24,7 +24,12 @@ serde = { version = "1", features = ["derive"] }
 # wrote. The files are read by people and diffed against older downloads.
 serde_json = { version = "1", features = ["preserve_order"] }
 thiserror = "2"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
+# Both sets of root certificates. The built-in ones keep a machine with an empty
+# or broken store working; the system's own let in the roots that antivirus
+# programs and company proxies install to inspect HTTPS. With the built-in set
+# alone, such a machine signs in (the webview uses the system store) and then
+# fails the token request with "error sending request" (issue #25).
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-webpki-roots", "rustls-tls-native-roots", "blocking"] }
 
 [profile.release]
 # A tool that runs for a minute and writes some files; size is worth more than

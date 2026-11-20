@@ -53,6 +53,31 @@ pub enum Progress {
 
 pub type Report<'a> = dyn Fn(Progress) + 'a;
 
+/// Why a fetch stopped: the message every user sees, and the technical causes
+/// beneath it, which the window keeps behind a "details" link.
+#[derive(Clone, Debug)]
+pub struct Failure {
+    pub message: String,
+    pub causes: Vec<String>,
+}
+
+impl From<String> for Failure {
+    fn from(message: String) -> Self {
+        Self { message, causes: Vec::new() }
+    }
+}
+
+impl From<&str> for Failure {
+    fn from(message: &str) -> Self {
+        message.to_owned().into()
+    }
+}
+
+/// A failed API call, with `message` shown and the error's causes kept.
+fn failure(error: &hcpd_client::Error, message: String) -> Failure {
+    Failure { message, causes: error.causes() }
+}
+
 fn step(report: &Report<'_>, title: impl Into<String>) {
     report(Progress::Step(title.into()));
 }
@@ -66,7 +91,7 @@ fn warn(report: &Report<'_>, line: impl Into<String>) {
 }
 
 /// Signs in and collects every appliance on the account. Writes nothing.
-pub fn fetch(region: Region, report: &Report<'_>) -> Result<Vec<Fetched>, String> {
+pub fn fetch(region: Region, report: &Report<'_>) -> Result<Vec<Fetched>, Failure> {
     step(report, "Sign in");
     let pkce = hcpd_core::Pkce::new();
     let code = login(region, &pkce, report)?;
@@ -75,7 +100,7 @@ pub fn fetch(region: Region, report: &Report<'_>) -> Result<Vec<Fetched>, String
 
     step(report, "Read the account");
     let client = hcpd_client::Client::connect(region, &code, &pkce.verifier)
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| failure(&error, error.to_string()))?;
     detail(report, format!("Account: {}", client.hc_id));
 
     // The token names the account's region. That is no help before signing in,
@@ -125,15 +150,17 @@ pub fn fetch(region: Region, report: &Report<'_>) -> Result<Vec<Fetched>, String
     // A wrong region does not answer 401 here; it answers with an empty list.
     // So the message that would otherwise say nothing useful gets the reason
     // appended to it.
-    let appliances =
-        client.appliances(&|line| detail(report, line)).map_err(|error| match suspect {
+    let appliances = client.appliances(&|line| detail(report, line)).map_err(|error| {
+        let message = match suspect {
             Some(theirs) => format!(
-                "{error} The token says this account is registered in {}, so that \
-                 is probably where its appliances are.",
+                "{error} The token says this account is registered in {}, so \
+                     that is probably where its appliances are.",
                 theirs.label()
             ),
             None => error.to_string(),
-        })?;
+        };
+        failure(&error, message)
+    })?;
     detail(report, format!("{} appliance(s) on the account.", appliances.len()));
 
     let mut fetched = Vec::new();
@@ -150,7 +177,7 @@ pub fn fetch(region: Region, report: &Report<'_>) -> Result<Vec<Fetched>, String
 
         let archive = client
             .appliance_archive(&appliance.ha_id)
-            .map_err(|error| format!("{}: {error}", appliance.ha_id))?;
+            .map_err(|error| failure(&error, format!("{}: {error}", appliance.ha_id)))?;
         detail(report, format!("Archive: {} bytes", thousands(archive.len())));
 
         // Parsed here rather than at save time so a broken document is reported
