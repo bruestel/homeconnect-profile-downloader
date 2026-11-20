@@ -39,10 +39,10 @@ sudo rpm -i hcpd-2.0.0.beta.2-1.x86_64.rpm
 
 #### Arch Linux
 
-The `PKGBUILD` lives in this repository, under `packaging/aur/`:
+The `PKGBUILD` lives in this repository, under `packaging/aur/`. It packages the branch that is checked out, and during the beta that has to be `2.x`: the default branch still holds version 1.
 
 ```bash
-git clone https://github.com/bruestel/homeconnect-profile-downloader.git
+git clone -b 2.x https://github.com/bruestel/homeconnect-profile-downloader.git
 cd homeconnect-profile-downloader/packaging/aur
 makepkg -si
 ```
@@ -119,11 +119,13 @@ macOS and Windows need nothing beyond the toolchain: both carry the webview that
 ### Quick start
 
 ```bash
-git clone https://github.com/bruestel/homeconnect-profile-downloader.git
+git clone -b 2.x https://github.com/bruestel/homeconnect-profile-downloader.git
 cd homeconnect-profile-downloader
 cargo build --release --workspace
 ./target/release/hcpd
 ```
+
+The `-b 2.x` is there for the beta: the default branch still holds version 1, which has no Rust code in it.
 
 Build the whole workspace rather than the application alone. The sign-in runs in a second executable, `hcpd-login`, and the application looks for it next to itself, so `cargo run -p hcpd` on its own gives you a build whose sign-in cannot start.
 
