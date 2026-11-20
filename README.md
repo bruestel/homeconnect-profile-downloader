@@ -24,7 +24,7 @@ You sign in through the official Home Connect page, the tool collects every appl
 #### Debian, Ubuntu, Linux Mint
 
 ```bash
-sudo dpkg -i hcpd_2.0.0~beta.1-1_amd64.deb
+sudo dpkg -i hcpd_2.0.0~beta.2-1_amd64.deb
 ```
 
 Then start **Home Connect Profile Downloader** from the application menu, or run `hcpd` in a terminal.
@@ -32,7 +32,7 @@ Then start **Home Connect Profile Downloader** from the application menu, or run
 #### Fedora, RHEL, CentOS, openSUSE
 
 ```bash
-sudo rpm -i hcpd-2.0.0~beta.1-1.x86_64.rpm
+sudo rpm -i hcpd-2.0.0~beta.2-1.x86_64.rpm
 ```
 
 > **Note:** The tilde in the deb and rpm names is not a typo. Neither format allows the hyphen that semver uses for a pre-release, and both sort a tilde before everything else, so `2.0.0~beta.1` correctly counts as older than `2.0.0`.
@@ -52,15 +52,15 @@ makepkg -si
 An AppImage runs without being installed.
 
 ```bash
-chmod +x Home_Connect_Profile_Downloader-2.0.0-beta.1-x86_64.AppImage
-./Home_Connect_Profile_Downloader-2.0.0-beta.1-x86_64.AppImage
+chmod +x Home_Connect_Profile_Downloader-2.0.0-beta.2-x86_64.AppImage
+./Home_Connect_Profile_Downloader-2.0.0-beta.2-x86_64.AppImage
 ```
 
 It carries its own copy of everything except the system's WebKit, which the sign-in window needs. On a distribution that does not ship `webkit2gtk-4.1`, install it from the distribution's own packages, or use the deb or the rpm instead.
 
 ### On Windows
 
-1. Download `hcpd-2.0.0-beta.1-windows-x86_64-setup.exe`.
+1. Download `hcpd-2.0.0-beta.2-windows-x86_64-setup.exe`.
 2. Double-click it. The installer needs no administrator rights and installs for the current user only, under `%LOCALAPPDATA%\Programs\hcpd`.
 3. Windows Defender SmartScreen will say that it protected your PC, because the installer is not signed by a paying developer. Click **More info**, then **Run anyway**.
 4. Start **Home Connect Profile Downloader** from the Start menu.
@@ -69,7 +69,7 @@ To remove it later, use Settings, Apps, Installed apps, or the uninstaller in th
 
 ### On macOS
 
-1. Download `hcpd-2.0.0-beta.1-macos-apple-silicon.dmg` on an Apple silicon Mac, or `hcpd-2.0.0-beta.1-macos-intel.dmg` on an Intel Mac.
+1. Download `hcpd-2.0.0-beta.2-macos-apple-silicon.dmg` on an Apple silicon Mac, or `hcpd-2.0.0-beta.2-macos-intel.dmg` on an Intel Mac.
 2. Open the disk image and drag **Home Connect Profile Downloader** onto the **Applications** folder, then eject the image.
 3. Open the application from the Applications folder. macOS will refuse, saying it cannot verify that the app is free of malware.
 4. Open **System Settings**, go to **Privacy & Security**, and scroll to the bottom. A line about the blocked application is there with an **Open Anyway** button. Click it and confirm.

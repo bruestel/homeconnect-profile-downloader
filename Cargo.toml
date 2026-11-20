@@ -13,7 +13,7 @@ resolver = "3"
 members = ["app", "crates/hcpd-core", "crates/hcpd-client", "login-helper"]
 
 [workspace.package]
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/bruestel/homeconnect-profile-downloader"

@@ -1836,7 +1836,7 @@ checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 
 [[package]]
 name = "hcpd"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "chrono",
  "hcpd-client",
@@ -1855,7 +1855,7 @@ dependencies = [
 
 [[package]]
 name = "hcpd-client"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "base64",
  "hcpd-core",
@@ -1868,7 +1868,7 @@ dependencies = [
 
 [[package]]
 name = "hcpd-core"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "base64",
  "chrono",
@@ -1884,7 +1884,7 @@ dependencies = [
 
 [[package]]
 name = "hcpd-login"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
 dependencies = [
  "muda",
  "objc2 0.6.5",
